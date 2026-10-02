@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
+
+const executableName = basename(process.execPath);
+const compiledHostConfig = executableName === "omp" || executableName === "omp.exe"
+  ? { name: "omp", configDir: ".omp" }
+  : undefined;
 
 export function getConfigDirName(): string {
   const configDir = readPiConfig()?.configDir;
@@ -11,7 +16,8 @@ export function getAgentDir(): string {
   const piConfig = readPiConfig();
   const name = piConfig?.name;
   const appName = typeof name === "string" && name.trim() ? name.trim() : "pi";
-  const configured = process.env[`${appName.toUpperCase()}_CODING_AGENT_DIR`]?.trim();
+  const configured = process.env[`${appName.toUpperCase()}_CODING_AGENT_DIR`]?.trim()
+    || (appName === "omp" ? process.env.PI_CODING_AGENT_DIR?.trim() : undefined);
   if (!configured) {
     return join(homedir(), getConfigDirName(), "agent");
   }
@@ -37,11 +43,12 @@ export function getAgentPath(...segments: string[]): string {
  * than importing pi: this package deliberately depends on pi-ai and pi-tui
  * only, and `getAgentDir()` above reads its env var the same self-contained way.
  *
- * Falls back to "pi", which is what pi's own APP_NAME resolves to.
+ * Without a manifest, the compiled `omp` executable uses OMP's branding;
+ * other hosts retain Pi's defaults.
  */
 function readPiConfig(): { name?: unknown; configDir?: unknown; clientUri?: unknown } | undefined {
   const dir = process.env.PI_PACKAGE_DIR?.trim()
-  if (!dir) return undefined
+  if (!dir) return compiledHostConfig
   try {
     const manifest = JSON.parse(readFileSync(join(resolve(dir), "package.json"), "utf8")) as {
       piConfig?: { name?: unknown; configDir?: unknown; clientUri?: unknown }

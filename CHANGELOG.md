@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Hosts such as OMP that do not export Pi's `withFileMutationQueue` can load the adapter and install servers. Configuration saves use Pi's shared queue when available, otherwise a canonical-path queue preserves same-file ordering and releases failed mutations. The host API is loaded only when saving an installed server.
+- Hosts such as OMP that do not export Pi's `withFileMutationQueue` can load the adapter and install servers. Configuration saves use Pi's shared queue when available, otherwise a canonical-path queue preserves same-file ordering and releases failed mutations.
+- Compiled OMP without a Pi branding manifest reads adapter configuration and state from `~/.omp/agent` instead of unrelated Pi configuration. Its `PI_CODING_AGENT_DIR` override and explicitly supplied branding manifests remain supported.
 
 ## [5.0.0] - 2026-10-01
 

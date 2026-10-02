@@ -23,6 +23,7 @@ import { publishMcpStatusShutdown } from "./mcp-status.ts";
 import { syncNamespaceProxyTools } from "./namespace-tools.ts";
 import { restoreSessionApprovalState } from "./session-approvals.ts";
 import { createRetryableLoader } from "./lazy-loader.ts";
+import { withFileMutationQueue } from "./file-mutation-queue.ts";
 import { toToolParameters } from "./tool-parameters.ts";
 
 export type { McpAdapterOptions } from "./types.ts";
@@ -54,7 +55,6 @@ const loadDirectExecution = createRetryableLoader(() => import("./direct-tools.t
 const loadCommands = createRetryableLoader(() => import("./commands.ts"));
 const loadCodeMode = createRetryableLoader(() => import("./mcp-code.ts"));
 const loadInstallParsing = createRetryableLoader(() => import("./mcp-install.ts"));
-const loadFileMutations = createRetryableLoader(() => import("./file-mutation-queue.ts"));
 
 const INIT_WAIT_TIMEOUT_MS = 30_000;
 const INIT_FAILURE_MESSAGE_MAX_CHARS = 1_000;
@@ -1988,7 +1988,6 @@ function installMcpAdapter(pi: ExtensionAPI, options: McpAdapterOptions) {
 
     if (provisional) {
       try {
-        const { withFileMutationQueue } = await loadForRuntime(loadFileMutations, installGuard);
         await withFileMutationQueue(destination, async () => {
           signal?.throwIfAborted();
           installOwner?.throwIfInactive();

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -9,6 +9,9 @@ describe("Pi agent dir paths", () => {
   const originalOAuthDir = process.env.MCP_OAUTH_DIR;
   const originalPackageDir = process.env.PI_PACKAGE_DIR;
   const originalArcAgentDir = process.env.ARC_CODING_AGENT_DIR;
+  const originalExecPath = process.execPath;
+  const originalOmpAgentDir = process.env.OMP_CODING_AGENT_DIR;
+  const ompHomes: string[] = [];
 
   beforeEach(() => {
     vi.resetModules();
@@ -16,6 +19,14 @@ describe("Pi agent dir paths", () => {
   });
 
   afterEach(() => {
+    process.execPath = originalExecPath;
+    if (originalOmpAgentDir === undefined) {
+      delete process.env.OMP_CODING_AGENT_DIR;
+    } else {
+      process.env.OMP_CODING_AGENT_DIR = originalOmpAgentDir;
+    }
+    for (const home of ompHomes) rmSync(home, { recursive: true, force: true });
+    ompHomes.length = 0;
     process.env.HOME = originalHome;
     if (originalAgentDir === undefined) {
       delete process.env.PI_CODING_AGENT_DIR;
@@ -80,6 +91,7 @@ describe("Pi agent dir paths", () => {
     const agentDir = mkdtempSync(join(tmpdir(), "pi-mcp-agent-dir-"));
     process.env.HOME = home;
     writeFileSync(join(packageDir, "package.json"), JSON.stringify({ piConfig: { name: "arc", configDir: ".arc" } }));
+    process.execPath = join(home, "omp");
     process.env.PI_PACKAGE_DIR = packageDir;
 
     const { getAgentDir } = await import("../agent-dir.ts");
@@ -94,6 +106,48 @@ describe("Pi agent dir paths", () => {
 
     process.env.ARC_CODING_AGENT_DIR = "relative-agent";
     expect(getAgentDir()).toBe(join(process.cwd(), "relative-agent"));
+  });
+
+  it("loads OMP configuration rather than unrelated Pi configuration in compiled OMP", async () => {
+    const home = mkdtempSync(join(tmpdir(), "pi-mcp-omp-dir-"));
+    ompHomes.push(home);
+    process.env.HOME = home;
+    process.execPath = join(home, "omp");
+    delete process.env.PI_CODING_AGENT_DIR;
+    delete process.env.OMP_CODING_AGENT_DIR;
+    for (const [directory, server] of [[".omp", "omp_private"], [".pi", "pi_private"]]) {
+      const agentDir = join(home, directory, "agent");
+      mkdirSync(agentDir, { recursive: true });
+      writeFileSync(join(agentDir, "mcp-adapter.json"), JSON.stringify({
+        imports: [],
+        settings: { hostConfigDiscovery: "off" },
+        mcpServers: { [server]: { command: "node" } },
+      }));
+    }
+
+    // Import after choosing the executable to exercise module-load-time host detection.
+    const { loadMcpConfig } = await import("../config.ts");
+    expect(Object.keys(loadMcpConfig(undefined, home).mcpServers)).toEqual(["omp_private"]);
+  });
+
+  it("keeps OMP's PI_CODING_AGENT_DIR override authoritative for configuration", async () => {
+    const home = mkdtempSync(join(tmpdir(), "pi-mcp-omp-dir-"));
+    ompHomes.push(home);
+    process.env.HOME = home;
+    process.execPath = join(home, "omp");
+    delete process.env.OMP_CODING_AGENT_DIR;
+    const agentDir = join(home, "isolated-agent");
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(join(agentDir, "mcp-adapter.json"), JSON.stringify({
+      imports: [],
+      settings: { hostConfigDiscovery: "off" },
+      mcpServers: { isolated_private: { command: "node" } },
+    }));
+
+    // Import after choosing the executable to exercise module-load-time host detection.
+    const { loadMcpConfig } = await import("../config.ts");
+    expect(Object.keys(loadMcpConfig(undefined, home).mcpServers)).toEqual(["isolated_private"]);
   });
 
   it("keeps MCP_OAUTH_DIR as the explicit OAuth storage override", async () => {
