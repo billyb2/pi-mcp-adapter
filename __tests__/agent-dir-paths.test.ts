@@ -150,6 +150,37 @@ describe("Pi agent dir paths", () => {
     expect(Object.keys(loadMcpConfig(undefined, home).mcpServers)).toEqual(["isolated_private"]);
   });
 
+  it.each([false, true])("keeps OMP native configuration host-owned when Pi MCP support is %s", async (supportsPiMcp) => {
+    const home = mkdtempSync(join(tmpdir(), "pi-mcp-omp-native-"));
+    ompHomes.push(home);
+    process.env.HOME = home;
+    process.execPath = join(home, "omp");
+    delete process.env.PI_CODING_AGENT_DIR;
+    delete process.env.OMP_CODING_AGENT_DIR;
+    const agentDir = join(home, ".omp", "agent");
+    const projectDir = join(home, "project", ".omp");
+    mkdirSync(agentDir, { recursive: true });
+    mkdirSync(projectDir, { recursive: true });
+    writeFileSync(join(agentDir, "mcp.json"), JSON.stringify({
+      mcpServers: { native_only: { command: "native" } },
+      disabledServers: ["native_only"],
+    }));
+    writeFileSync(join(projectDir, "mcp.json"), JSON.stringify({
+      mcpServers: { project_native: { command: "native-project" } },
+    }));
+    writeFileSync(join(agentDir, "mcp-adapter.json"), JSON.stringify({
+      imports: [],
+      mcpServers: { adapter_only: { command: "adapter" } },
+    }));
+
+    // Import after choosing the host to exercise its module-load-time ownership boundary.
+    const { getLegacyMcpMigrationNotices, loadMcpConfig, setPiMcpConfigEnabled } = await import("../config.ts");
+    setPiMcpConfigEnabled(supportsPiMcp);
+    const cwd = join(home, "project");
+    expect(getLegacyMcpMigrationNotices(cwd)).toEqual([]);
+    expect(Object.keys(loadMcpConfig(undefined, cwd).mcpServers)).toEqual(["adapter_only"]);
+  });
+
   it("keeps MCP_OAUTH_DIR as the explicit OAuth storage override", async () => {
     const home = mkdtempSync(join(tmpdir(), "pi-mcp-agent-dir-home-"));
     const agentDir = mkdtempSync(join(tmpdir(), "pi-mcp-agent-dir-"));

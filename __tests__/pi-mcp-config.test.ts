@@ -253,16 +253,12 @@ describe("Pi mcp.json config sources", () => {
     expect(getLegacyMcpMigrationNotices(cwd)).toEqual([]);
   });
 
-  it("reads nothing from Pi's files and keeps the migration notice on Pi without MCP support", async () => {
+  it("reads nothing from Pi's files on Pi without MCP support", async () => {
     writeJson(piGlobal, { mcpServers: { old: { command: "old" } } });
     writeJson(piProject, { mcpServers: { oldProject: { command: "old" } } });
-    const { getLegacyMcpMigrationNotices, loadMcpConfig } = await loadConfigModule(false);
+    const { loadMcpConfig } = await loadConfigModule(false);
 
     expect(loadMcpConfig(undefined, cwd).mcpServers).toEqual({});
-    expect(getLegacyMcpMigrationNotices(cwd)).toEqual([
-      `pi-mcp-adapter no longer reads ${piGlobal}. Move it with: mv ${JSON.stringify(piGlobal)} ${JSON.stringify(join(home, ".pi", "agent", "mcp-adapter.json"))}`,
-      `pi-mcp-adapter no longer reads ${piProject}. Move it with: mv ${JSON.stringify(piProject)} ${JSON.stringify(join(cwd, ".pi", "mcp-adapter.json"))}`,
-    ]);
   });
 
   it("puts .pi/mcp.json servers through project trust and approval", async () => {

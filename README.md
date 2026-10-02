@@ -71,7 +71,7 @@ Restart Pi after installation.
 
 > **DeepSeek Harness (third-party bridge):** Run the unmodified adapter in DSH via [pi2dsh](https://github.com/weijiafu14/pi2dsh); see the [verified dsh-TUI and Web MCP guide](https://github.com/weijiafu14/pi2dsh/tree/main/examples/tui-mcp).
 
-> **OMP:** The extension also works through OMP's Pi compatibility layer. The compiled `omp` executable uses `~/.omp/agent` when no branding manifest is supplied, and honors OMP's `PI_CODING_AGENT_DIR` override. Hosts without Pi's file-mutation API use the adapter's same-file queue for server installation. OMP's native MCP discovery and OAuth store are separate from Pi's: disable duplicate native server entries explicitly and configure authentication before replacing them with adapter connections.
+> **OMP:** The extension also works through OMP's Pi compatibility layer. The compiled `omp` executable uses `~/.omp/agent` when no branding manifest is supplied, and honors OMP's `PI_CODING_AGENT_DIR` override. Hosts without Pi's file-mutation API use the adapter's same-file queue for server installation. OMP's native MCP discovery and OAuth store are separate from Pi's: disable duplicate native server entries explicitly and configure authentication before replacing them with adapter connections. Keep OMP's native `mcp.json`; the adapter does not import it as Pi configuration or advise removing it. To hide the persistent MCP footer, set `"mcpFooterStatus": "off"` in `mcp-adapter.json`'s `settings`.
 
 ## What happens on first run
 

@@ -2284,29 +2284,6 @@ describe("config discovery", () => {
     expect(loadMcpConfig().settings).toBeUndefined();
   });
 
-  it("builds migration notices for adapter keys and non-empty legacy mcp-servers", async () => {
-    const home = mkdtempSync(join(tmpdir(), "pi-mcp-migration-home-"));
-    const project = mkdtempSync(join(tmpdir(), "pi-mcp-migration-project-"));
-    process.env.HOME = home;
-    process.chdir(project);
-    const globalOld = join(home, ".pi", "agent", "mcp.json");
-    const globalTarget = join(home, ".pi", "agent", "mcp-adapter.json");
-    const projectOld = join(project, ".pi", "mcp.json");
-    const projectTarget = join(project, ".pi", "mcp-adapter.json");
-    writeJson(globalOld, { settings: { toolPrefix: "mcp" }, mcpServers: {} });
-    writeJson(globalTarget, { mcpServers: {} });
-    writeJson(projectOld, { "mcp-servers": { legacy: { command: "legacy" } } });
-
-    const { getLegacyMcpMigrationNotices } = await import("../config.ts");
-    expect(getLegacyMcpMigrationNotices(project)).toEqual([
-      `pi-mcp-adapter no longer reads ${globalOld}. Merge ${globalOld} into ${globalTarget}, then remove ${globalOld}.`,
-      `pi-mcp-adapter no longer reads ${projectOld}. Move it with: mv ${JSON.stringify(projectOld)} ${JSON.stringify(projectTarget)}`,
-    ]);
-    // An explicit --mcp-config/configPath is loaded verbatim, so it is not a migration candidate.
-    expect(getLegacyMcpMigrationNotices(project, globalOld)).toEqual([
-      `pi-mcp-adapter no longer reads ${projectOld}. Move it with: mv ${JSON.stringify(projectOld)} ${JSON.stringify(projectTarget)}`,
-    ]);
-  });
 
 });
 

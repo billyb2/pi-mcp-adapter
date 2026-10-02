@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import stripJsonComments from "strip-json-comments";
-import { getAgentPath, getConfigDirName } from "./agent-dir.ts";
+import { getAgentPath, getAppName, getConfigDirName } from "./agent-dir.ts";
 import { getAgentPluginSummaries, loadAgentPluginConfigs, type AgentPluginSummary } from "./agent-plugin-loader.ts";
 import { cloneBuiltInAgentPluginEntry, isBuiltInAgentPlugin, mergeBuiltInAgentPluginEntries } from "./agent-plugin-provenance.ts";
 import { loadClaudePluginBundles } from "./claude-plugin-loader.ts";
@@ -240,9 +240,9 @@ export function getProjectPiMcpConfigPath(cwd = process.cwd()): string {
 
 let piMcpConfigEnabled = false;
 
-/** @internal Set once by the extension on Pi 0.99+, so every loader in the process agrees. */
+/** @internal OMP owns a different native format; Pi's MCP capability does not make it a Pi config. */
 export function setPiMcpConfigEnabled(enabled: boolean): void {
-  piMcpConfigEnabled = enabled;
+  piMcpConfigEnabled = enabled && getAppName() !== "omp";
 }
 
 /** @internal */
@@ -268,6 +268,8 @@ function legacyMcpConfigHasContent(filePath: string): boolean {
 }
 
 export function getLegacyMcpMigrationNotices(cwd = process.cwd(), overridePath?: string): string[] {
+  // OMP still consumes these files, including its native-server denylist.
+  if (getAppName() === "omp") return [];
   if (piMcpConfigEnabled) {
     return getConfigSources(overridePath, cwd).flatMap((source) => {
       const file = isPiMcpSource(source.id) ? readPiMcpConfig(source.readPath) : null;
