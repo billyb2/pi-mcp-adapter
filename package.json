@@ -103,6 +103,7 @@
     "direct-tools.ts",
     "direct-tool-surface.ts",
     "lazy-loader.ts",
+    "file-mutation-queue.ts",
     "namespace-tools.ts",
     "mcp-references.ts",
     "commands.ts",

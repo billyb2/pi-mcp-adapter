@@ -1,4 +1,4 @@
-import { withFileMutationQueue, type AgentToolResult, type AgentToolUpdateCallback, type ExtensionAPI, type ExtensionContext, type RegisteredMcpServer, type ToolInfo } from "@earendil-works/pi-coding-agent";
+import type { AgentToolResult, AgentToolUpdateCallback, ExtensionAPI, ExtensionContext, RegisteredMcpServer, ToolInfo } from "@earendil-works/pi-coding-agent";
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -54,6 +54,7 @@ const loadDirectExecution = createRetryableLoader(() => import("./direct-tools.t
 const loadCommands = createRetryableLoader(() => import("./commands.ts"));
 const loadCodeMode = createRetryableLoader(() => import("./mcp-code.ts"));
 const loadInstallParsing = createRetryableLoader(() => import("./mcp-install.ts"));
+const loadFileMutations = createRetryableLoader(() => import("./file-mutation-queue.ts"));
 
 const INIT_WAIT_TIMEOUT_MS = 30_000;
 const INIT_FAILURE_MESSAGE_MAX_CHARS = 1_000;
@@ -1987,6 +1988,7 @@ function installMcpAdapter(pi: ExtensionAPI, options: McpAdapterOptions) {
 
     if (provisional) {
       try {
+        const { withFileMutationQueue } = await loadForRuntime(loadFileMutations, installGuard);
         await withFileMutationQueue(destination, async () => {
           signal?.throwIfAborted();
           installOwner?.throwIfInactive();

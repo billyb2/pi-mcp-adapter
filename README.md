@@ -71,6 +71,8 @@ Restart Pi after installation.
 
 > **DeepSeek Harness (third-party bridge):** Run the unmodified adapter in DSH via [pi2dsh](https://github.com/weijiafu14/pi2dsh); see the [verified dsh-TUI and Web MCP guide](https://github.com/weijiafu14/pi2dsh/tree/main/examples/tui-mcp).
 
+> **OMP:** The extension also works through OMP's Pi compatibility layer. Hosts without Pi's file-mutation API use the adapter's same-file queue for server installation. OMP's native MCP discovery and OAuth store are separate from Pi's: disable duplicate native server entries explicitly and configure authentication before replacing them with adapter connections.
+
 ## What happens on first run
 
 The adapter reads standard MCP files automatically. No extra setup needed if you already have them.
